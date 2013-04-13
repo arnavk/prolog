@@ -178,90 +178,48 @@ fix_end_day(Diff, Old_Day, New_Day):- Diff<0,
 	New_Day_int is (Old_Day_int+1),
 	day(New_Day, New_Day_int).
 
-one_change_travel_time(First_Flight, FF_Day, Second_Flight, SF_Day, Travel_Time):- 
-	find_flight(First_Flight,X,Y,FF_Start,FF_End,FF_Day,FF_End_day),
-	find_flight(Second_Flight,W,Z,SF_Start,SF_End,SF_Day,SF_End_day),
-	time_difference(FF_Start, FF_Day, FF_End, FF_Day, FF_Duration),
-	time_difference(SF_Start, SF_Day, SF_End, SF_Day, SF_Duration),
-	time_difference(FF_End, FF_Day, SF_Start, SF_Day, Transit_Time),
-	Travel_Time is (FF_Duration + SF_Duration + Transit_Time).
-
 member_of(X,[X|_]):- !.
 member_of(X,[_|T]) :- member_of(X,T).
 
-remove_duplicate([],[]).
-remove_duplicate([H|T],[H|Out]) :-
-   not(member_of(H,T)),
-   !,
-remove_duplicate(T,Out).
-remove_duplicate([H|T],Out) :-
-   member_of(H,T),
-   remove_duplicate(T,Out).
-
-find_direct_flights(Origin, Destination, List):-
-	findall([X0, X1], find_flight(X0, Origin, Destination, Q, W, X1, E), X),
-	remove_duplicate(X, List).
-
-find_all_direct_flights_after(Origin, Destination, Time, Day, Number):-
-	find_flight(Number, Origin, Destination, Start_time, End_time, Flight_Day, Flight_Arrival_Day).
-
-find_distinct_direct_flights_after(Origin, Destination, Time, Day, List):-
-	findall(X0, find_all_direct_flights_after(Origin, Destination, Time, Day, X0), X),
-	remove_duplicate(X, List).
 	
 find_all_flight_and_travel_time(Number, Origin, Destination, Time, Day, Travel_Time):-
-	find_flight(Number, Origin, Destination, Start_time, End_time, Flight_Day, Flight_Arrival_Day),
+	find_flight(Number, Origin, Destination, Start_time, _, Flight_Day, _),
 	time_difference(Time, Day, Start_time, Flight_Day, Travel_Time).
-
-list_flights_and_travel_times(Origin, Destination, Time, Day, List):-
-	findall([Number, Travel_Time], find_all_flight_and_travel_time(Number, Origin, Destination, Time, Day, Travel_Time), X).
-
-find_direct_flight(Origin, Destination, Day):-
-	find_flight(Number, Origin, Destination, _, _, Day, Flight_Arrival_Day),
-	write(Origin), write(' to '), write(Destination), write('\n').
-
-
-
-find_flights(Origin, Destination, Number):-
-	find_direct_flight(Origin, Destination, mon);
-	find_flight(W, Origin, Buffer, X, Y, Z, Flight_Arrival_Day),
-	find_flights(Buffer, Destination, Number).
-
 
 
 %% CASE 1: Next node is the destination
-route(Origin, Destination, DeptTime, ArrTime, Day, [[Flightno, New_Day]], Visited):-
-    find_flight(Flightno, Origin, Destination, Dept1, Arr1, New_Day, Flight_Arrival_Day),
-    not(member(Destination,Visited)).
+route(Origin, Destination, _, [[Flightno, New_Day]], Visited):-
+    find_flight(Flightno, Origin, Destination, _, _, New_Day, _),
+    not(member_of(Destination,Visited)).
         
 
 %% CASE 2: 
-route(Origin, Destination, Dept_Time, Arr_Time, Day, [[Flightno, New_Day]|Route], Visited):-
-    find_flight(Flightno, Origin, Transit, DeptTime, ArrTime, New_Day, Flight_Arrival_Day),
-    not(member(Transit,Visited)),
-    route(Transit, Destination, Dept1, Arr1, Day, Route, [Transit|Visited]).
+route(Origin, Destination, Day, [[Flightno, New_Day]|Route], Visited):-
+    find_flight(Flightno, Origin, Transit, _, _, New_Day, _),
+    not(member_of(Transit,Visited)),
+    route(Transit, Destination, Day, Route, [Transit|Visited]).
 	
 
 %% Query Part
 plan_route(Origin_City, Destination_City, Day, Route):- 
-    route(Origin_City, Destination_City, Dept_Time, Arr_Time, Day, Route, [Origin_City]).
+    route(Origin_City, Destination_City, Day, Route, [Origin_City]).
 
 
-process_flight_node([Number, Day|Empty], Start_time, End_time, Day, Flight_Arrival_Day):-
-	find_flight(Number, Origin, Destination, Start_time, End_time, Day, Flight_Arrival_Day).
+process_flight_node([Number, Day|_], Start_time, End_time, Day, Flight_Arrival_Day):-
+	find_flight(Number, _, _, Start_time, End_time, Day, Flight_Arrival_Day).
 
 calculate_route_time([First_Flight|Route], Time):-	
 	process_route([First_Flight|Route], 0, Time).
 
 calculate_route_time_from_specified_time([First_Flight|Route], Start_time, Start_Day, Time):-	
-	process_flight_node(First_Flight, FF_Start, FF_End, FF_Day, FF_Arrival_day),
+	process_flight_node(First_Flight, FF_Start, _, FF_Day, _),
 	time_difference(Start_time, Start_Day, FF_Start, FF_Day, InitialWait),
 	process_route([First_Flight|Route], 0, Route_time),
 	Time is (Route_time + InitialWait).
 
 last_element_of_list([Last|[]], Last).  
 
-last_element_of_list([Y|Tail], Last):-
+last_element_of_list([_|Tail], Last):-
     last_element_of_list(Tail, Last).
 
 find_route_options_and_time(Origin, Destination, Day, Route, Travel_Time, Total_time):-
@@ -276,13 +234,13 @@ list_route_options_and_total_time(Origin, Destination, Day, Route, List):-
 	findall([Route,Time],find_route_options_and_time(Origin, Destination, Day, Route, _, Time),List).
 
 
-extract_times([[Route, Time|Nothing]|[]], List, [Time|List]).
+extract_times([[_, Time|_]|[]], List, [Time|List]).
 
-extract_times([[Route, Time|Nothig]|Tail], List, Result):-
+extract_times([[_, Time|_]|Tail], List, Result):-
 	extract_times(Tail, [Time|List], Result).
 
 length_of([],0).
-length_of([H|T],N) :- length_of(T,M), N is M+1.
+length_of([_|T],N) :- length_of(T,M), N is M+1.
 
 extract_all_times(Origin, Destination, Day, Route, List):-
 	list_route_options_and_total_time(Origin, Destination, Day, Route, RouteList),
@@ -290,7 +248,7 @@ extract_all_times(Origin, Destination, Day, Route, List):-
 
 process_route([First_Flight, Second_Flight|Route], Time, Result):-
 	process_flight_node(First_Flight, FF_Start, FF_End, FF_Day, FF_Arrival_day),
-	process_flight_node(Second_Flight, SF_Start, SF_End, SF_Day, SF_Arrival_day),
+	process_flight_node(Second_Flight, SF_Start, _, SF_Day, _),
 	time_difference(FF_Start, FF_Day, FF_End, FF_Arrival_day, FF_Duration),
 	time_difference(FF_End, FF_Arrival_day, SF_Start, SF_Day, Transit_Time),
 	New_time is (Time + FF_Duration + Transit_Time),
@@ -325,21 +283,21 @@ accCp([],[]).
 accCp([H|T1],[H|T2]) :- accCp(T1,T2).
 
 find_fastest_route(Origin, Destination, Day):-
-	list_route_options_and_total_time(Origin, Destination, Day, X, RouteList),
+	list_route_options_and_total_time(Origin, Destination, Day, _, RouteList),
 	extract_times(RouteList, [], TimeList),
 	min_in_list(TimeList, MinTime),
 	extract_fastest_route_from_list(RouteList, MinTime).
 
-extract_fastest_route_from_list([[Route, Time|Nothing]|Tail], MinTime):-
+extract_fastest_route_from_list([[Route, Time|_]|Tail], MinTime):-
 	Time = MinTime, 
 	print_route(Route),
 	extract_fastest_route_from_list(Tail, MinTime); 
 	extract_fastest_route_from_list(Tail, MinTime).
 
-extract_fastest_route_from_list([], MinTime):-false.
+extract_fastest_route_from_list([], _):-false.
 	
 
-print_route([[Number, Day|Empty], Second_Flight|Route]):-
+print_route([[Number, Day|_], Second_Flight|Route]):-
 	find_flight(Number, Origin, Destination, Start_time, End_time, Day, Flight_Arrival_Day),
 	write('     Flight Number: '), 
 	write(Number), 
@@ -362,7 +320,7 @@ print_route([[Number, Day|Empty], Second_Flight|Route]):-
 	write('		Duration :'),
 	print_time_difference(Duration),
 	write('\n'),
-	process_flight_node(Second_Flight, SF_Start, SF_End, SF_Day, SF_Arrival_day),
+	process_flight_node(Second_Flight, SF_Start, _, SF_Day, _),
 	time_difference(End_time, Flight_Arrival_Day, SF_Start, SF_Day, Transit_Time),
 	write('\n'),
 	write('     Wating Time: '),
@@ -373,7 +331,7 @@ print_route([[Number, Day|Empty], Second_Flight|Route]):-
 
 
 
-print_route([[Number, Day|Empty]|[]]):-
+print_route([[Number, Day|_]|[]]):-
 	find_flight(Number, Origin, Destination, Start_time, End_time, Day, Flight_Arrival_Day),
 	write('     Flight Number: '), 
 	write(Number), 
