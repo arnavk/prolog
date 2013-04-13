@@ -1,0 +1,1 @@
+parent_of(X,Y) :- (son(Y,X);daughter(Y,X));((son(Z,X);daughter(Z,X)),sibling(Z,Y)).
