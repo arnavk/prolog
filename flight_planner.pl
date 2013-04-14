@@ -151,7 +151,8 @@ location(6, rome).
 
 append(H, L, [H,L]).
 
-absolute_time(Time_of_day, Day, Abs_Time):- day(Day,X),
+absolute_time(Time_of_day, Day, Abs_Time):- 
+	day(Day,X),
 	Abs_Time is (((Time_of_day//100)*60)+(mod(Time_of_day,100)) + (X-1)*1440).
 
 time_difference(Start_time, Start_Day, End_time, End_day, Time_Diff):- 
@@ -167,7 +168,11 @@ find_flight(Number, Origin, Destination, Start_time, End_time, Start_Day, End_da
 	Diff is (End_Abs - Start_Abs),
 	fix_end_day(Diff, Start_Day, End_day).
 
-fix_end_day(Diff, Old_Day, New_Day):- Diff>=0, day(Old_Day, Old_Day_int), day(New_Day, Old_Day_int).
+fix_end_day(Diff, Old_Day, New_Day):- 
+	Diff>=0, 
+	day(Old_Day, Old_Day_int), 
+	day(New_Day, Old_Day_int).
+
 fix_end_day(Diff, Old_Day, New_Day):- Diff<0, 
 	day(Old_Day, Old_Day_int),
 	New_Day_int is (Old_Day_int+1),
@@ -175,7 +180,6 @@ fix_end_day(Diff, Old_Day, New_Day):- Diff<0,
 
 member_of(X,[X|_]):- !.
 member_of(X,[_|T]) :- member_of(X,T).
-
 
 %% CASE 1: Next node is the destination
 route(Origin, Destination, _, [[Flightno, New_Day]], Visited):-
