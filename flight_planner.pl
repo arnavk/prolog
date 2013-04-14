@@ -160,11 +160,6 @@ time_difference(Start_time, Start_Day, End_time, End_day, Time_Diff):-
 	Diff is (End_Abs - Start_Abs), 
 	Time_Diff is (mod(Diff, 10080)).
 
-time_difference_in_week(Start_time, Start_Day, End_time, End_day, Time_Diff):- 
-	absolute_time(Start_time, Start_Day, Start_Abs), 
-	absolute_time(End_time, End_day, End_Abs), 
-	Time_Diff is (End_Abs - Start_Abs).
-
 find_flight(Number, Origin, Destination, Start_time, End_time, Start_Day, End_day):-
 	flight(Number, Origin, Destination, Start_time, End_time, Start_Day),
 	absolute_time(Start_time, Start_Day, Start_Abs), 
@@ -181,29 +176,21 @@ fix_end_day(Diff, Old_Day, New_Day):- Diff<0,
 member_of(X,[X|_]):- !.
 member_of(X,[_|T]) :- member_of(X,T).
 
-	
-find_all_flight_and_travel_time(Number, Origin, Destination, Time, Day, Travel_Time):-
-	find_flight(Number, Origin, Destination, Start_time, _, Flight_Day, _),
-	time_difference(Time, Day, Start_time, Flight_Day, Travel_Time).
-
 
 %% CASE 1: Next node is the destination
 route(Origin, Destination, _, [[Flightno, New_Day]], Visited):-
     find_flight(Flightno, Origin, Destination, _, _, New_Day, _),
     not(member_of(Destination,Visited)).
-        
 
 %% CASE 2: 
 route(Origin, Destination, Day, [[Flightno, New_Day]|Route], Visited):-
     find_flight(Flightno, Origin, Transit, _, _, New_Day, _),
     not(member_of(Transit,Visited)),
     route(Transit, Destination, Day, Route, [Transit|Visited]).
-	
 
 %% Query Part
 plan_route(Origin_City, Destination_City, Day, Route):- 
     route(Origin_City, Destination_City, Day, Route, [Origin_City]).
-
 
 process_flight_node([Number, Day|_], Start_time, End_time, Day, Flight_Arrival_Day):-
 	find_flight(Number, _, _, Start_time, End_time, Day, Flight_Arrival_Day).
@@ -217,42 +204,8 @@ calculate_route_time_from_specified_time([First_Flight|Route], Start_time, Start
 	process_route([First_Flight|Route], 0, Route_time),
 	Time is (Route_time + InitialWait).
 
-last_element_of_list([Last|[]], Last).  
-
-last_element_of_list([_|Tail], Last):-
-    last_element_of_list(Tail, Last).
-
-find_route_options_and_time(Origin, Destination, Day, Route, Travel_Time, Total_time):-
-	plan_route(Origin, Destination, Day, Route),
-	calculate_route_time(Route, Travel_Time),
-	calculate_route_time_from_specified_time(Route, 0000, Day, Total_time).
-
-list_route_options_and_travel_time(Origin, Destination, Day, Route, List):-
-	findall([Route,Time],find_route_options_and_time(Origin, Destination, Day, Route, Time, _),List).
-
-list_route_options_and_total_time(Origin, Destination, Day, Route, List):-
-	findall([Route,Time],find_route_options_and_time(Origin, Destination, Day, Route, _, Time),List).
-
-list_route_options_with_total_and_travel_time(Origin, Destination, Day, Route, List):-
-	findall([Route,Travel_Time,Total_Time],find_route_options_and_time(Origin, Destination, Day, Route, Travel_Time, Total_Time),List).
-
 list_all_routes(Origin, Destination, Day, RouteList):-
 	findall(Route, plan_route(Origin, Destination, Day, Route), RouteList).
-
-
-extract_times([[_, Time|_]|[]], List, [Time|List]).
-
-extract_times([[_, Time|_]|Tail], List, Result):-
-	extract_times(Tail, [Time|List], Result).
-
-length_of([],0).
-length_of([_|T],N) :- length_of(T,M), N is M+1.
-
-extract_all_times(Origin, Destination, Day, Route, List):-
-	list_route_options_and_total_time(Origin, Destination, Day, Route, RouteList),
-	extract_times(RouteList,[], List).
-
-
 
 process_route([First_Flight, Second_Flight|Route], Time, Result):-
 	process_flight_node(First_Flight, FF_Start, FF_End, FF_Day, FF_Arrival_day),
@@ -286,7 +239,6 @@ min_in_list([H,K|T],M) :-
     H > K,
     min_in_list([K|T],M).
 
-
 get_travel_time_list([], List, List).
 
 get_travel_time_list([Head|Route], List, Result):-
@@ -298,7 +250,6 @@ get_total_time_list([], _, List, List).
 get_total_time_list([Head|Route], Day, List, Result):-
 	calculate_route_time_from_specified_time(Head, 0000, Day, Time),
 	get_total_time_list(Route, Day, [Time|List], Result).
-
 
 find_fastest_route(Origin, Destination, Day):-
 	list_all_routes(Origin, Destination, Day, RouteList),
@@ -322,7 +273,6 @@ extract_fastest_route_from_list([Route|Tail], Day, MinTravelTime, MinTotalTime):
 
 extract_fastest_route_from_list([], _, _, _):-false.
 	
-
 print_route([[Number, Day|_], Second_Flight|Route]):-
 	find_flight(Number, Origin, Destination, Start_time, End_time, Day, Flight_Arrival_Day),
 	write('     Flight Number: '), 
@@ -355,8 +305,6 @@ print_route([[Number, Day|_], Second_Flight|Route]):-
 
 	print_route([Second_Flight|Route]).
 
-
-
 print_route([[Number, Day|_]|[]]):-
 	find_flight(Number, Origin, Destination, Start_time, End_time, Day, Flight_Arrival_Day),
 	write('     Flight Number: '), 
@@ -383,7 +331,6 @@ print_route([[Number, Day|_]|[]]):-
 	write('\n'),
 	print_route([]).	
 
-
 print_route([]).
 
 print_time(Time):- Time<1000, write('0'), write(Time), write('HRS').
@@ -398,15 +345,9 @@ print_hours(Hours):- Hours>1, write(Hours), write(' hours ').
 print_hours(Hours):- Hours=1, write(Hours), write(' hour ').
 print_hours(Hours):- Hours<1, write('').
 
-
 print_minutes(Minutes):- Minutes>1, write(Minutes), write(' minutes').
 print_minutes(Minutes):- Minutes=1, write(Minutes), write(' minute').
 print_minutes(Minutes):- Minutes<1, write('').
-
-
-
-
-
 
 main :- repeat, nl, write('---------------------------------------------'),
         nl, write('	     Welcome to Flight Planner!'),
@@ -421,7 +362,6 @@ main :- repeat, nl, write('---------------------------------------------'),
 		nl, write('6. Rome'),nl,
         read(Origin_int),
         location(Origin_int, Origin),
-
 
 		nl,write('Please pick your Destination City'),
         nl,write('1. Singapore'),
