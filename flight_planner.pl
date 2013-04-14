@@ -194,19 +194,19 @@ member_of(X,[X|_]):- !.
 member_of(X,[_|T]) :- member_of(X,T).
 
 %% CASE 1: Next node is the destination
-route(Origin, Destination, _, [[Flightno, Day]], Visited):-
+route(Origin, Destination, [[Flightno, Day]], Visited):-
     find_flight(Flightno, Origin, Destination, _, _, Day, _),
     not(member_of(Destination,Visited)).
 
 %% CASE 2: 
-route(Origin, Destination, Day, [[Flightno, New_Day]|Route], Visited):-
+route(Origin, Destination, [[Flightno, New_Day]|Route], Visited):-
     find_flight(Flightno, Origin, Transit, _, _, New_Day, _),
     not(member_of(Transit,Visited)),
-    route(Transit, Destination, Day, Route, [Transit|Visited]).
+    route(Transit, Destination, Route, [Transit|Visited]).
 
 %% Query Part
-plan_route(Origin_City, Destination_City, Day, Route):- 
-    route(Origin_City, Destination_City, Day, Route, [Origin_City]).
+plan_route(Origin_City, Destination_City, Route):- 
+    route(Origin_City, Destination_City, Route, [Origin_City]).
 
 %% Processes a flight node, which is used in routes and finds the corresponding flight.
 process_flight_node([Number, Day|_], Start_time, End_time, Day, Flight_Arrival_Day):-
@@ -226,8 +226,8 @@ calculate_route_time_from_specified_time([First_Flight|Route], Start_time, Start
 	Time is (Route_time + InitialWait).
 
 %% Prepares a list of routes between the "Origin" and "Destination"
-list_all_routes(Origin, Destination, Day, RouteList):-
-	findall(Route, plan_route(Origin, Destination, Day, Route), RouteList).
+list_all_routes(Origin, Destination, RouteList):-
+	findall(Route, plan_route(Origin, Destination, Route), RouteList).
 
 %% Processes a route and computes the total time for it, recursively.
 process_route([First_Flight, Second_Flight|Route], Time, Result):-
@@ -281,7 +281,7 @@ get_total_time_list([Head|Route], Day, List, Result):-
 
 %% Finds the fastest route from "Origin" to "Destination" on or after "Day"
 find_fastest_route(Origin, Destination, Day):-
-	list_all_routes(Origin, Destination, Day, RouteList),
+	list_all_routes(Origin, Destination, RouteList),
 	get_travel_time_list(RouteList, [], TravelList),
 	get_total_time_list(RouteList, Day, [], Total_Time_List),
 	min_in_list(TravelList, MinTravelTime),
