@@ -233,6 +233,12 @@ list_route_options_and_travel_time(Origin, Destination, Day, Route, List):-
 list_route_options_and_total_time(Origin, Destination, Day, Route, List):-
 	findall([Route,Time],find_route_options_and_time(Origin, Destination, Day, Route, _, Time),List).
 
+list_route_options_with_total_and_travel_time(Origin, Destination, Day, Route, List):-
+	findall([Route,Travel_Time,Total_Time],find_route_options_and_time(Origin, Destination, Day, Route, Travel_Time, Total_Time),List).
+
+list_all_routes(Origin, Destination, Day, RouteList):-
+	findall(Route, plan_route(Origin, Destination, Day, Route), RouteList).
+
 
 extract_times([[_, Time|_]|[]], List, [Time|List]).
 
@@ -245,6 +251,8 @@ length_of([_|T],N) :- length_of(T,M), N is M+1.
 extract_all_times(Origin, Destination, Day, Route, List):-
 	list_route_options_and_total_time(Origin, Destination, Day, Route, RouteList),
 	extract_times(RouteList,[], List).
+
+
 
 process_route([First_Flight, Second_Flight|Route], Time, Result):-
 	process_flight_node(First_Flight, FF_Start, FF_End, FF_Day, FF_Arrival_day),
@@ -278,23 +286,41 @@ min_in_list([H,K|T],M) :-
     H > K,
     min_in_list([K|T],M).
 
-copy(L,R) :- accCp(L,R).
-accCp([],[]).
-accCp([H|T1],[H|T2]) :- accCp(T1,T2).
+
+get_travel_time_list([], List, List).
+
+get_travel_time_list([Head|Route], List, Result):-
+	calculate_route_time(Head, Time),
+	get_travel_time_list(Route, [Time|List], Result).
+
+get_total_time_list([], _, List, List).
+
+get_total_time_list([Head|Route], Day, List, Result):-
+	calculate_route_time_from_specified_time(Head, 0000, Day, Time),
+	get_total_time_list(Route, Day, [Time|List], Result).
+
 
 find_fastest_route(Origin, Destination, Day):-
-	list_route_options_and_total_time(Origin, Destination, Day, _, RouteList),
-	extract_times(RouteList, [], TimeList),
-	min_in_list(TimeList, MinTime),
-	extract_fastest_route_from_list(RouteList, MinTime).
+	list_all_routes(Origin, Destination, Day, RouteList),
+	get_travel_time_list(RouteList, [], TravelList),
+	get_total_time_list(RouteList, Day, [], Total_Time_List),
+	min_in_list(TravelList, MinTravelTime),
+	min_in_list(Total_Time_List, MinTotalTime),
+	extract_fastest_route_from_list(RouteList, Day, MinTravelTime, MinTotalTime).
 
-extract_fastest_route_from_list([[Route, Time|_]|Tail], MinTime):-
-	Time = MinTime, 
+extract_fastest_route_from_list([Route|Tail], Day, MinTravelTime, MinTotalTime):-
+	calculate_route_time(Route, Travel_Time),
+	calculate_route_time_from_specified_time(Route, 0000, Day, Total_Time),
+	Travel_Time = MinTravelTime,
+	Total_Time = MinTotalTime,
 	print_route(Route),
-	extract_fastest_route_from_list(Tail, MinTime); 
-	extract_fastest_route_from_list(Tail, MinTime).
+	write('     Total Travel Time: '),
+	print_time_difference(Travel_Time),
+	write('\n\n'),
+	extract_fastest_route_from_list([], _, 0, 0); 
+	extract_fastest_route_from_list(Tail, Day, MinTravelTime, MinTotalTime).
 
-extract_fastest_route_from_list([], _):-false.
+extract_fastest_route_from_list([], _, _, _):-false.
 	
 
 print_route([[Number, Day|_], Second_Flight|Route]):-
@@ -315,7 +341,7 @@ print_route([[Number, Day|_], Second_Flight|Route]):-
 	print_time(End_time),
 	write(' on '),
 	write(Flight_Arrival_Day),
-	write('.\n'),
+	write('\n'),
 	time_difference(Start_time, Day, End_time, Flight_Arrival_Day, Duration),
 	write('		Duration :'),
 	print_time_difference(Duration),
@@ -349,7 +375,7 @@ print_route([[Number, Day|_]|[]]):-
 	print_time(End_time),
 	write(' on '),
 	write(Flight_Arrival_Day),
-	write('.\n'),
+	write('\n'),
 	time_difference(Start_time, Day, End_time, Flight_Arrival_Day, Duration),
 	write('		Duration :'),
 	print_time_difference(Duration),
@@ -368,11 +394,13 @@ print_time_difference(Minutes):-
 	Mins is mod(Minutes,60),
 	print_minutes(Mins).
 
-print_hours(Hours):- Hours>=1, write(Hours), write(' hours ').
+print_hours(Hours):- Hours>1, write(Hours), write(' hours ').
+print_hours(Hours):- Hours=1, write(Hours), write(' hour ').
 print_hours(Hours):- Hours<1, write('').
 
 
-print_minutes(Minutes):- Minutes>=1, write(Minutes), write(' minutes').
+print_minutes(Minutes):- Minutes>1, write(Minutes), write(' minutes').
+print_minutes(Minutes):- Minutes=1, write(Minutes), write(' minute').
 print_minutes(Minutes):- Minutes<1, write('').
 
 
@@ -422,19 +450,3 @@ main :- repeat, nl, write('---------------------------------------------'),
 		nl,write('		 Please Wait..'),
         nl,write('---------------------------------------------'),nl,
 		nl, find_fastest_route(Origin,Destination,Day).
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
