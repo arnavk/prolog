@@ -205,8 +205,8 @@ route(Origin, Destination, [[Flightno, New_Day]|Route], Visited):-
     route(Transit, Destination, Route, [Transit|Visited]).
 
 %% Query Part
-plan_route(Origin_City, Destination_City, Route):- 
-    route(Origin_City, Destination_City, Route, [Origin_City]).
+plan_route(Origin, Destination, Route):- 
+    route(Origin, Destination, Route, [Origin]).
 
 %% Processes a flight node, which is used in routes and finds the corresponding flight.
 process_flight_node([Number, Day|_], Start_time, End_time, Day, Flight_Arrival_Day):-
