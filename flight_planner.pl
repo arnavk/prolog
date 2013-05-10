@@ -1,4 +1,8 @@
+%% IMPORTANT - For best results use SWI Prolog.
+
 %% Facts for all the flights
+
+%% The system assumes that the maximum possible duration of a flight is 6 days, 23 hours and 59 minutes.
 flight(ba58, singapore, london, 2310, 520, monday).
 flight(ba58, singapore, london, 2310, 520, wednesday).
 flight(ba58, singapore, london, 2310, 520, thursday).
@@ -224,6 +228,17 @@ calculate_route_time_from_specified_time([First_Flight|Route], Start_time, Start
 	time_difference(Start_time, Start_Day, FF_Start, FF_Day, InitialWait),
 	process_route([First_Flight|Route], 0, Route_time),
 	Time is (Route_time + InitialWait).
+
+find_short_route(Origin, Destination, RouteList, Day):-
+	route_and_time(Origin, Destination, _, Time),
+	short_route(Origin, Destination, Time, [], RouteList).
+
+route_and_time(Origin, Destination, Route, Day, Time):-
+	plan_route(Origin, Destination, Route),
+	calculate_route_time_from_specified_time(Route, 0000, Day, Time).
+
+check_and_append(Route, Time, MinTime, List, [Route|List], Time):- MinTime>Time, write('adding '), write(Time), write(' '), write(MinTime),nl.
+%check_and_append(Route, Time, MinTime, List, List, MinTime):-Time>MinTime, write('not '), write(Time), write(' '), write(MinTime),nl.
 
 %% Prepares a list of routes between the "Origin" and "Destination"
 list_all_routes(Origin, Destination, RouteList):-
